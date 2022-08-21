@@ -1,3 +1,4 @@
+function deleteComms() {
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord.js');
 require('dotenv').config()
@@ -16,3 +17,4 @@ rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: [] })
 rest.put(Routes.applicationCommands(clientId), { body: [] })
 	.then(() => console.log('Successfully deleted all application commands.'))
 	.catch(console.error);
+}

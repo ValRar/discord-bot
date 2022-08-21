@@ -2,8 +2,6 @@ const { Client, GatewayIntentBits, messageLink, SlashCommandBuilder, SlashComman
 const Discordjs = require('discord.js')
 const dotenv = require('dotenv').config()
 const fs = require('fs')
-
-
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 // When the client is ready, run this code (only once)
@@ -37,6 +35,9 @@ client.once('ready', () => {
             .setRequired(false)
         )
     ]
+
+    //client.guilds.cache.each(guild => deleteCommands(guild.id))
+    deleteCommands()
     client.guilds.cache.each(guild => addCommands(commands, guild.id))
 });
 
@@ -105,6 +106,32 @@ rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands })
 	.then(() => console.log(`Successfully registered application commands in Guild id - ${guildId}.`))
 	.catch(console.error);
 }
+
+function deleteCommands() {
+    const { REST } = require('@discordjs/rest');
+    const { Routes } = require('discord.js');
+    require('dotenv').config()
+    const clientId = '1010883303701741570'
+    const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+    try {
+         const guildId = client.guilds.cache.at(0).id
+    } catch {
+        console.log("error caused while deleting commands!")
+        return
+    }
+    
+    // ...
+    
+    // for guild-based commands
+    rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: [] })
+        .then(() => console.log('Successfully deleted all guild commands.'))
+        .catch(console.error);
+    
+    // for global commands
+    rest.put(Routes.applicationCommands(clientId), { body: [] })
+        .then(() => console.log('Successfully deleted all application commands.'))
+        .catch(console.error);
+    }
 // client.on('messageCreate', async (message) => {
 //     if (message.author.id != client.user.id) message.channel.send("https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Example")
 // })
