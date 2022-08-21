@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test-ts": "ts-node index.ts",
-    "test-js": "node index.js"
+    "test-js": "node index.js",
+    "start": "node index.js"
+    
   },
   "author": "",
   "license": "ISC",
