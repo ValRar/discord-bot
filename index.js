@@ -110,8 +110,7 @@ rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands })
 function deleteCommands() {
     const { REST } = require('@discordjs/rest');
     const { Routes } = require('discord.js');
-    require('dotenv').config()
-    const clientId = '1010883303701741570'
+    const clientId = process.env.clientId
     const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
     try {
          const guildId = client.guilds.cache.at(0).id
