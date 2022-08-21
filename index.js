@@ -1,7 +1,7 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const Discordjs = require('discord.js')
-const dotenv = require('dotenv')
-dotenv.config()
+const TOKEN="MTAxMDg4MzMwMzcwMTc0MTU3MA.G5VP8w.x96pFSL0kYj9UEPm85ngvBuI16Zyv_t8SRFhVE"
+const GUILD_ID="1010887912541405205"
 
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
@@ -9,7 +9,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
 	console.log('Ready!');
-    const guild = client.guilds.cache.get(process.env.GUILD_ID)
+    const guild = client.guilds.cache.get(GUILD_ID)
 
     let commands
     if (guild){
@@ -85,4 +85,4 @@ client.on('interactionCreate', async (interaction) => {
 // })
 
 // Login to Discord with your client's token
-client.login(process.env.TOKEN);
+client.login(TOKEN);
