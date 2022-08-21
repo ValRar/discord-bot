@@ -1,6 +1,6 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const Discordjs = require('discord.js')
-const TOKEN="MTAxMDg4MzMwMzcwMTc0MTU3MA.G5VP8w.x96pFSL0kYj9UEPm85ngvBuI16Zyv_t8SRFhVE"
+const TOKEN="MTAxMDg4MzMwMzcwMTc0MTU3MA.GiovL5.gm7yb6CatcI3UBj4Tfj6NCukOdynEkqBpj_KOI"
 const GUILD_ID="1010887912541405205"
 
 // Create a new client instance
