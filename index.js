@@ -36,8 +36,7 @@ client.once('ready', () => {
         )
     ]
 
-    //client.guilds.cache.each(guild => deleteCommands(guild.id))
-    deleteCommands()
+    client.guilds.cache.each(guild => deleteCommands(guild.id))
     client.guilds.cache.each(guild => addCommands(commands, guild.id))
 });
 
@@ -107,29 +106,23 @@ rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands })
 	.catch(console.error);
 }
 
-function deleteCommands() {
+function deleteCommands(guildId) {
     const { REST } = require('@discordjs/rest');
     const { Routes } = require('discord.js');
     const clientId = process.env.clientId
     const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
-    try {
-         const guildId = client.guilds.cache.at(0).id
-    } catch {
-        console.log("error caused while deleting commands!")
-        return
-    }
-    
+
     // ...
-    
+
     // for guild-based commands
     rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: [] })
-        .then(() => console.log('Successfully deleted all guild commands.'))
-        .catch(console.error);
-    
+	    .then(() => console.log('Successfully deleted all guild commands.'))
+	    .catch(console.error);
+
     // for global commands
     rest.put(Routes.applicationCommands(clientId), { body: [] })
-        .then(() => console.log('Successfully deleted all application commands.'))
-        .catch(console.error);
+	    .then(() => console.log('Successfully deleted all application commands.'))
+	    .catch(console.error);
     }
 // client.on('messageCreate', async (message) => {
 //     if (message.author.id != client.user.id) message.channel.send("https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Example")
