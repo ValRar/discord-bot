@@ -4,38 +4,36 @@ const dotenv = require('dotenv').config()
 const fs = require('fs')
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+
+const commands = [
+    new SlashCommandBuilder()
+    .setName('ping')
+    .setDescription('send pong'),
+    new SlashCommandBuilder()
+    .setName('qrcode')
+    .setDescription('makes a qr code')
+    .addStringOption(new SlashCommandStringOption()
+        .setName('source')
+        .setDescription('The source in qr code.')
+        .setRequired(true)),
+    new SlashCommandBuilder()
+    .setName('ban')
+    .setDescription('bans a user')
+    .addUserOption(new SlashCommandUserOption()
+        .setName('user')
+        .setDescription('a user to be banned')
+        .setRequired(true)
+    )
+    .addStringOption(
+        new SlashCommandStringOption()
+        .setName('reason')
+        .setDescription('reason of ban')
+        .setRequired(false)
+    )
+]
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
 	console.log('Ready!');
-    //const guild = client.guilds.cache.get(GUILD_ID)
-
-    const commands = [
-        new SlashCommandBuilder()
-        .setName('ping')
-        .setDescription('send pong'),
-        new SlashCommandBuilder()
-        .setName('qrcode')
-        .setDescription('makes a qr code')
-        .addStringOption(new SlashCommandStringOption()
-            .setName('source')
-            .setDescription('The source in qr code.')
-            .setRequired(true)),
-        new SlashCommandBuilder()
-        .setName('ban')
-        .setDescription('bans a user')
-        .addUserOption(new SlashCommandUserOption()
-            .setName('user')
-            .setDescription('a user to be banned')
-            .setRequired(true)
-        )
-        .addStringOption(
-            new SlashCommandStringOption()
-            .setName('reason')
-            .setDescription('reason of ban')
-            .setRequired(false)
-        )
-    ]
-
     client.guilds.cache.each(guild => deleteCommands(guild.id))
     client.guilds.cache.each(guild => addCommands(commands, guild.id))
 });
@@ -90,6 +88,10 @@ client.on('interactionCreate', async (interaction) => {
             })
         }
     }
+})
+
+client.on('guildCreate', (guild) => {
+    addCommands(commands, guild.id)
 })
 
 function addCommands(commands, guildId) {
