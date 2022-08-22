@@ -78,7 +78,7 @@ client.on('interactionCreate', async (interaction) => {
             reason: reason,
         })
         interaction.reply({
-            content: `User @${user.tag} was succesfully permanently banned with reason: ${reason}.`
+            content: `User ${user} was succesfully permanently banned with reason: ${reason}.`
         })
         } catch {
             interaction.reply({
