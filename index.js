@@ -1,17 +1,19 @@
-const { Client, GatewayIntentBits, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption, SlashCommandMemberOption, RESTJSONErrorCodes } = require('discord.js');
+const { Client, GatewayIntentBits, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption, RESTJSONErrorCodes } = require('discord.js');
 const Discordjs = require('discord.js')
-const dotenv = require('dotenv').config()
-const fs = require('fs')
+const { joinVoiceChannel, createAudioPlayer, getVoiceConnection, createAudioResource } = require('@discordjs/voice')
+require('dotenv').config()
+require('ffmpeg')
+require('sodium')
+const ytdl = require('ytdl-core')
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
-
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
 const commands = [
     new SlashCommandBuilder()
     .setName('ping')
-    .setDescription('send pong'),
+    .setDescription('send pong.'),
     new SlashCommandBuilder()
     .setName('qrcode')
-    .setDescription('makes a qr code')
+    .setDescription('makes a qr code.')
     .addStringOption(new SlashCommandStringOption()
         .setName('source')
         .setDescription('The source in qr code.')
@@ -21,22 +23,35 @@ const commands = [
     .setDescription('bans a user')
     .addUserOption(new SlashCommandUserOption()
         .setName('user')
-        .setDescription('a user to be banned')
+        .setDescription('a user to be banned.')
         .setRequired(true)
     )
     .addStringOption(
         new SlashCommandStringOption()
         .setName('reason')
-        .setDescription('reason of ban')
+        .setDescription('reason of ban.')
         .setRequired(false)
     ),
     new SlashCommandBuilder()
     .setName('unban')
-    .setDescription('unbans a user')
+    .setDescription('unbans a user.')
     .addUserOption(new SlashCommandUserOption()
     .setName('user')
-    .setDescription('user to be unbanned')
-    .setRequired(true))
+    .setDescription('user to be unbanned.')
+    .setRequired(true)),
+    new SlashCommandBuilder()
+    .setName('join')
+    .setDescription('Joins to the voice channel.'),
+    new SlashCommandBuilder()
+    .setName('leave')
+    .setDescription('leaves from voice channel.'),
+    new SlashCommandBuilder()
+    .setName('play')
+    .setDescription('plays a music')
+    .addStringOption(new SlashCommandStringOption()
+    .setName('url')
+    .setDescription('url of a song.')
+    .setRequired(true)),
 ]
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
@@ -126,6 +141,61 @@ client.on('interactionCreate', async (interaction) => {
             }
         })
             
+    } else if (commandName === 'join') {
+        if (interaction.member.voice.channelId){
+            joinVoiceChannel({
+            channelId: interaction.member.voice.channelId,
+            guildId: interaction.guild.id,
+            adapterCreator: interaction.guild.voiceAdapterCreator,
+            })
+            interaction.reply({
+                content: 'succesfully joined.',
+                ephemeral: false,
+            })
+        } else {
+            interaction.reply({
+                content: 'you doesn`t connected to the voice channel.',
+                ephemeral: true,
+            })
+        }
+    } else if (commandName === 'leave'){
+        const connection = getVoiceConnection(interaction.guild.id)
+        if (connection){
+            connection.destroy()
+            interaction.reply({
+                content: 'Bot succesfully disconnected.',
+                ephemeral: false,
+            })
+        } else {
+            interaction.reply({
+                content: 'bot doesn`t connected to the voice channel.',
+                ephemeral: true,
+            })
+        }
+    } else if (commandName === 'play') {
+        const player = createAudioPlayer()
+        const url = options.getString('url')
+        try {
+            const stream = ytdl(url, { filter: 'audioonly' })
+            const resource = createAudioResource(stream)
+            const connection = getVoiceConnection(interaction.guild.id).subscribe(player)
+            if (!connection) {
+                return interaction.reply({
+                    content: 'i`m don`t connected to the voice channel.',
+                    ephemeral: true,
+                })
+            }
+            player.play(resource)
+            interaction.reply({
+                content: 'playing audio.',
+                ephemeral: true,
+            })
+        } catch {
+            interaction.reply({
+                content: 'Video with this url was not found.',
+                ephemeral: true,
+            })
+        }
     }
 })
 
