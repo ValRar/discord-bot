@@ -66,11 +66,10 @@ client.on('interactionCreate', async (interaction) => {
         }
     } else if (commandName === 'ban'){
         if (!interaction.member.permissions.has('BAN_MEMBERS')) {
-            interaction.reply({
+            return interaction.reply({
                 content: 'You don`t have permission to ban members on this server.',
                 ephemeral: true,
             })
-            return
         }
         const user = options.getUser('user')
         const reason = options.getString('reason')
