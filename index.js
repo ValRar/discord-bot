@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption } = require('discord.js');
+const { Client, GatewayIntentBits, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption, SlashCommandMemberOption, RESTJSONErrorCodes } = require('discord.js');
 const Discordjs = require('discord.js')
 const dotenv = require('dotenv').config()
 const fs = require('fs')
@@ -29,7 +29,14 @@ const commands = [
         .setName('reason')
         .setDescription('reason of ban')
         .setRequired(false)
-    )
+    ),
+    new SlashCommandBuilder()
+    .setName('unban')
+    .setDescription('unbans a user')
+    .addUserOption(new SlashCommandUserOption()
+    .setName('user')
+    .setDescription('user to be unbanned')
+    .setRequired(true))
 ]
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
@@ -72,13 +79,15 @@ client.on('interactionCreate', async (interaction) => {
             })
         }
         const user = options.getUser('user')
-        const reason = options.getString('reason')
+        let reason = options.getString('reason')
+        if (reason === null) reason = 'none'
         try {
         interaction.guild.members.ban(user, {
             reason: reason,
         })
         interaction.reply({
-            content: `User ${user} was succesfully permanently banned with reason: ${reason}.`
+            content: `User ${user} was succesfully permanently banned with reason: ${reason}.`,
+            ephemeral: false,
         })
         } catch {
             interaction.reply({
@@ -86,6 +95,37 @@ client.on('interactionCreate', async (interaction) => {
                 ephemeral: true,
             })
         }
+    } else if (commandName === 'unban'){
+        if (!interaction.member.permissions.has(Discordjs.PermissionsBitField.Flags.Administrator)) {
+            return interaction.reply({
+                content: 'You don`t have permission to unban members on this server.',
+                ephemeral: true,
+            })
+        }
+        const user = options.getUser('user')
+        let isUnbannable = true
+        interaction.guild.members.unban(user).catch(err => {
+            if (err.code == RESTJSONErrorCodes.UnknownBan) {
+                interaction.reply({
+                    content: 'This user not banned.',
+                    ephemeral: true,
+                })
+            } else {
+                interaction.reply({
+                     content: 'Bot can`t unban this user.',
+                    ephemeral: true,
+                })
+            }
+            isUnbannable = false
+        }).then( () => {
+            if (isUnbannable) {
+                interaction.reply({
+                    content: `User ${user} was succesfully unbanned.`,
+                    ephemeral: false,
+                })
+            }
+        })
+            
     }
 })
 
