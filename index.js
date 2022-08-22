@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, messageLink, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption } = require('discord.js');
+const { Client, GatewayIntentBits, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption } = require('discord.js');
 const Discordjs = require('discord.js')
 const dotenv = require('dotenv').config()
 const fs = require('fs')
@@ -65,7 +65,7 @@ client.on('interactionCreate', async (interaction) => {
             })
         }
     } else if (commandName === 'ban'){
-        if (!interaction.member.permissions.has('BAN_MEMBERS')) {
+        if (!interaction.member.permissions.has(Discordjs.PermissionsBitField.Flags.BanMembers)) {
             return interaction.reply({
                 content: 'You don`t have permission to ban members on this server.',
                 ephemeral: true,
