@@ -171,29 +171,37 @@ client.on('interactionCreate', async (interaction) => {
             })
         }
     } else if (commandName === 'play') {
-        const player = createAudioPlayer()
         const url = options.getString('url')
-        try {
-            const stream = ytdl(url, { filter: 'audioonly' })
-            const resource = createAudioResource(stream)
-            const connection = getVoiceConnection(interaction.guild.id).subscribe(player)
-            if (!connection) {
-                return interaction.reply({
-                    content: 'i`m don`t connected to the voice channel.',
+        let validUrl = true
+        ytdl.getInfo(url).catch(() => {
+            validUrl = false
+            console.log('error')
+        }).then((info) => {
+            if (validUrl) {
+                const resource = createAudioResource(ytdl(url, { filter: 'audioonly', quality: 'highestaudio' }))
+                const player = createAudioPlayer()
+             const voiceChannel = getVoiceConnection(interaction.guild.id)
+                if (!voiceChannel) {
+                    interaction.reply({
+                     content: 'I am don`t connected to the voice channel.',
+                        ephemeral: true,
+                    })
+                }
+                else {
+                    voiceChannel.subscribe(player)
+                    player.play(resource)
+                     interaction.reply({
+                        content: `Now playing: [${info.videoDetails.title}](${url})`,
+                        ephemeral: false,
+                    })
+                }
+            } else {
+                interaction.reply({
+                    content: 'Video with this url was not found.',
                     ephemeral: true,
                 })
             }
-            player.play(resource)
-            interaction.reply({
-                content: 'playing audio.',
-                ephemeral: true,
-            })
-        } catch {
-            interaction.reply({
-                content: 'Video with this url was not found.',
-                ephemeral: true,
-            })
-        }
+        })
     }
 })
 
