@@ -3,7 +3,6 @@ const { Client, GatewayIntentBits, SlashCommandBuilder, SlashCommandUserOption, 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
 const commands = require('./commandList').list
 
-console.log('Ready!');
 client.login(process.env.TOKEN)
 
 client.once('ready', () => {

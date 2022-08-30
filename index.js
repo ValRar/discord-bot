@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption, RESTJSONErrorCodes } = require('discord.js');
+const { Client, GatewayIntentBits, RESTJSONErrorCodes } = require('discord.js');
 const Discordjs = require('discord.js')
 const { joinVoiceChannel, createAudioPlayer, getVoiceConnection, createAudioResource } = require('@discordjs/voice')
 require('dotenv').config()
@@ -157,6 +157,55 @@ client.on('interactionCreate', async (interaction) => {
                 })
             }
         })
+    } else if (commandName === 'mute') {
+        if (interaction.member.permissions.has(Discordjs.PermissionsBitField.Flags.MuteMembers)){
+            const user = options.getUser('user')
+            const time = options.getNumber('time') * 60000
+            const reason = options.getString('reason')
+            interaction.guild.members.fetch(user.id).then((members) => {
+                members.timeout(time, reason)
+                interaction.reply({
+                    content: `user ${user} was succesfully muted for ${time} minutes by reason: ${reason}`,
+                    ephemeral: false,
+                })
+            }).catch(err => {
+                console.log(err)
+                interaction.reply({
+                    content: 'an error occurred while trying to mute the user',
+                    ephemeral: true,
+                })
+            })
+            
+        } else {
+            interaction.reply({
+                content: 'You can`t mute members on this server.',
+                ephemeral: true,
+            })
+        }
+    } else if (commandName === 'unmute') {
+        if (interaction.member.permissions.has(Discordjs.PermissionsBitField.Flags.Administrator)){
+            const user = options.getUser('user')
+            const reason = options.getString('reason')
+            interaction.guild.members.fetch(user.id).then((members) => {
+                members.timeout(null, reason)
+                interaction.reply({
+                    content: `user ${user} was succesfully unmuted by reason: ${reason}`,
+                    ephemeral: false,
+                })
+            }).catch(err => {
+                console.log(err)
+                interaction.reply({
+                    content: 'an error occurred while trying to unmute the user',
+                    ephemeral: true,
+                })
+            })
+            
+        } else {
+            interaction.reply({
+                content: 'You can`t unmute members on this server.',
+                ephemeral: true,
+            })
+        }
     }
 })
 
