@@ -42,7 +42,7 @@ const commands = [
     .setDescription('plays a music')
     .addStringOption(new SlashCommandStringOption()
     .setName('url')
-    .setDescription('url of a song.')
+    .setDescription('url of a song (ONLY YOUTUBE).')
     .setRequired(true)),
 ]
 exports.list = commands
