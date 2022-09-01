@@ -143,12 +143,20 @@ client.on('interactionCreate', async (interaction) => {
                     })
                 }
                 else {
-                    voiceChannel.subscribe(player)
-                    player.play(resource)
-                     interaction.reply({
-                        content: `Now playing: [${info.videoDetails.title}](${url})`,
-                        ephemeral: false,
-                    })
+                    try {
+                        voiceChannel.subscribe(player)
+                        player.play(resource)
+                        interaction.reply({
+                            content: `Now playing: [${info.videoDetails.title}](${url})`,
+                            ephemeral: false,
+                        })
+                    } catch(err) {
+                        console.log(err)
+                        interaction.reply({
+                            content: 'an unknown error has occurred',
+                            ephemeral: true,
+                        })
+                    }
                 }
             } else {
                 interaction.reply({
