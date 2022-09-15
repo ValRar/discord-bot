@@ -103,7 +103,7 @@ client.on('interactionCreate', async (interaction) => {
             })
             interaction.reply({
                 content: 'succesfully joined.',
-                ephemeral: true,
+                ephemeral: false,
             })
         } else {
             interaction.reply({
@@ -133,30 +133,31 @@ client.on('interactionCreate', async (interaction) => {
             console.log('error')
         }).then((info) => {
             if (validUrl) {
-                const resource = createAudioResource(ytdl(url, { filter: 'audioonly', quality: 'highestaudio' }))
-                const player = createAudioPlayer()
-             const voiceChannel = getVoiceConnection(interaction.guild.id)
-                if (!voiceChannel) {
+                try {
+                  const resource = createAudioResource(
+                    ytdl(url, { filter: "audioonly", quality: "highestaudio" })
+                  );
+                  const player = createAudioPlayer();
+                  const voiceChannel = getVoiceConnection(interaction.guild.id);
+                  if (!voiceChannel) {
                     interaction.reply({
-                     content: 'I am don`t connected to the voice channel.',
-                        ephemeral: true,
-                    })
-                }
-                else {
-                    try {
-                        voiceChannel.subscribe(player)
-                        player.play(resource)
-                        interaction.reply({
-                            content: `Now playing: [${info.videoDetails.title}](${url})`,
-                            ephemeral: false,
-                        })
-                    } catch(err) {
-                        console.log(err)
-                        interaction.reply({
-                            content: 'an unknown error has occurred',
-                            ephemeral: true,
-                        })
-                    }
+                      content: "I am don`t connected to the voice channel.",
+                      ephemeral: true,
+                    });
+                  } else {
+                    voiceChannel.subscribe(player);
+                    player.play(resource);
+                    interaction.reply({
+                      content: `Now playing: [${info.videoDetails.title}](${url})`,
+                      ephemeral: false,
+                    });
+                  }
+                } catch (err) {
+                  console.log(err);
+                  interaction.reply({
+                    content: "an unknown error has occurred",
+                    ephemeral: true,
+                  });
                 }
             } else {
                 interaction.reply({
@@ -222,9 +223,9 @@ client.on('guildCreate', (guild) => {
 })
 
 function addCommands(commands, guildId) {
-const { SlashCommandBuilder, Routes } = require('discord.js');
+const { Routes } = require('discord.js');
 const { REST } = require('@discordjs/rest');
-const clientId = '1010883303701741570'
+const clientId = process.env.clientId
 
 	commands.map(command => command.toJSON());
 
@@ -234,10 +235,6 @@ rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands })
 	.then(() => console.log(`Successfully registered application commands in Guild id - ${guildId}.`))
 	.catch(console.error);
 }
-// client.on('messageCreate', async (message) => {
-//     if (message.author.id != client.user.id) message.channel.send("https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Example")
-// })
 // https://discord.com/api/oauth2/authorize?client_id=1010883303701741570&permissions=8&scope=bot%20applications.commands
-// https://discord.gg/g3RrJHNk
 // Login to Discord with your client's token
 client.login(process.env.TOKEN);
