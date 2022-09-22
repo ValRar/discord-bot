@@ -17,6 +17,7 @@
     "ffmpeg": "^0.0.4",
     "ffmpeg-static": "^5.0.2",
     "sodium": "^3.0.2",
-    "ytdl-core": "^4.11.2"
+    "ytdl-core": "^4.11.2",
+    "ytsr": "^3.8.0"
   }
 }

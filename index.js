@@ -1,9 +1,10 @@
-const { Client, GatewayIntentBits, RESTJSONErrorCodes } = require('discord.js');
+const { Client, GatewayIntentBits, RESTJSONErrorCodes, EmbedBuilder } = require('discord.js');
 const Discordjs = require('discord.js')
 const { joinVoiceChannel, createAudioPlayer, getVoiceConnection, createAudioResource } = require('@discordjs/voice')
 require('dotenv').config()
 require('ffmpeg')
 require('sodium')
+const ytsr = require('ytsr')
 const ytdl = require('ytdl-core')
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
@@ -20,13 +21,6 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'ping'){
         interaction.reply({
             content: 'pong!',
-            ephemeral: true,
-        })
-    } else if (commandName === 'sum'){
-        const num1 = options.getNumber('num1')        
-        const num2 = options.getNumber('num2')
-        interaction.reply({
-            content: `sum is ${num1 + num2}`,
             ephemeral: true,
         })
     } else if (commandName === 'qrcode'){
@@ -215,6 +209,24 @@ client.on('interactionCreate', async (interaction) => {
                 ephemeral: true,
             })
         }
+    } else if (commandName === 'search'){
+        const searchWord = options.getString('query')
+        ytsr(searchWord, { limit: 10 }).then((res) => {
+            let searchRes = []
+            res.items.map((item, index) => {
+                index++
+                const embed = new EmbedBuilder().setTitle(item.title).setURL(item.url)
+                try {
+                    embed.setImage(item.thumbnails[0].url)
+                } catch (ignore) {}
+                searchRes.push(embed)
+            })
+            interaction.reply({
+                content: 'Search results:',
+                ephemeral: false,
+                embeds: searchRes,
+            })
+        })
     }
 })
 
