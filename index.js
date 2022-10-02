@@ -239,6 +239,13 @@ client.on('interactionCreate', async (interaction) => {
         let validUrl = true
         const songName = options.getString('name')
         ytsr(songName, { limit: 1 }).then((res) => {
+            if (res.items.length == 0){
+                interaction.editReply({
+                    content: "Couldn't find anything for your query",
+                    ephemeral: true,
+                })
+                return
+            }
             ytdl.getInfo(res.items[0].url).catch((err) => {
                 validUrl = false
                 console.error(err)
