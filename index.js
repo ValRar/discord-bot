@@ -96,7 +96,7 @@ client.on('interactionCreate', async (interaction) => {
             guildId: interaction.guild.id,
             adapterCreator: interaction.guild.voiceAdapterCreator,
             })
-            interaction.reply({
+            await interaction.reply({
                 content: 'succesfully joined.',
                 ephemeral: false,
             })
@@ -231,24 +231,25 @@ client.on('interactionCreate', async (interaction) => {
     }
 })
 client.on('voiceStateUpdate', async (oldState, newState) => {
-    // Если инициатор события - бот, игнорируем, во избежание перезаходов
-    if (newState.id === client.user.id) return;
-    // Если бот не в канале - прерываем дальнейшее выполнение
-    if (!newState.guild.me.voice.channelID) return;
-    // Если пользователь зашел в канал - прерываем
-    if (!oldState.channelID) return;
-    // Если бота нет в канале - прерываем
-    if (oldState.channelID !== newState.guild.me.voice.channelID) return;
-    // Определяем, вышел ли пользователь из канала. Если нет - прерываем
-    if (newState.channelID) return;
-    // Определяем значение гильдии, для удобности (и понятности)
     let guild = newState.guild;
+    const voiceConnection = getVoiceConnection(guild.id)
+    // Если инициатор события - бот, игнорируем, во избежание перезаходов
+    if (newState.id === client.user.id) return console.log(1);
+    // Если бот не в канале - прерываем дальнейшее выполнение
+    if (!voiceConnection) return console.log(2);
+    // Если пользователь зашел в канал - прерываем
+    if (!oldState.channelId) return console.log(3);
+    // Если бота нет в канале - прерываем
+    if (oldState.channelId !== guild.members.resolve(client.user).voice.channelId) return console.log(4);
+    // Определяем, вышел ли пользователь из канала. Если нет - прерываем
+    if (newState.channelId) return console.log(5);
+    // Определяем значение гильдии, для удобности (и понятности)
     // Получаем объект канала
-    let channel = guild.channels.resolve(oldState.channelID);
+    let channel = guild.channels.resolve(oldState.channelId);
     // Если в канале есть кто-то кроме бота - прерываем
-    if (channel.members.size > 1) return;
+    if (channel.members.size > 1) return console.log(6);
     // Выходим из канала и пишем сообщение
-    await guild.me.voice.setChannel(null);
+    await voiceConnection.destroy();
 })
 
 client.on('guildCreate', (guild) => {
