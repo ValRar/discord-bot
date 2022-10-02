@@ -90,18 +90,23 @@ client.on('interactionCreate', async (interaction) => {
         })
             
     } else if (commandName === 'join') {
+        await interaction.deferReply()
         if (interaction.member.voice.channelId){
             joinVoiceChannel({
             channelId: interaction.member.voice.channelId,
             guildId: interaction.guild.id,
             adapterCreator: interaction.guild.voiceAdapterCreator,
             })
-            await interaction.reply({
-                content: 'succesfully joined.',
-                ephemeral: false,
-            })
+            try {
+                await interaction.editReply({
+                    content: 'succesfully joined.',
+                    ephemeral: false,
+                })
+            } catch (e) {
+                console.error(e)
+            }
         } else {
-            interaction.reply({
+            interaction.editReply({
                 content: 'you don`t connected to the voice channel.',
                 ephemeral: true,
             })
@@ -120,7 +125,8 @@ client.on('interactionCreate', async (interaction) => {
                 ephemeral: true,
             })
         }
-    } else if (commandName === 'play') {
+    } else if (commandName === 'playurl') {
+        await interaction.deferReply()
         const url = options.getString('url')
         let validUrl = true
         ytdl.getInfo(url).catch(() => {
@@ -149,13 +155,13 @@ client.on('interactionCreate', async (interaction) => {
                   }
                 } catch (err) {
                   console.log(err);
-                  interaction.reply({
+                  interaction.editReply({
                     content: "an unknown error has occurred",
                     ephemeral: true,
                   });
                 }
             } else {
-                interaction.reply({
+                interaction.editReply({
                     content: 'Video with this url was not found.',
                     ephemeral: true,
                 })
@@ -226,6 +232,41 @@ client.on('interactionCreate', async (interaction) => {
                 content: 'Search results:',
                 ephemeral: false,
                 embeds: searchRes,
+            })
+        })
+    } else if (commandName === 'play') {
+        await interaction.deferReply()
+        let validUrl = true
+        const songName = options.getString('name')
+        ytsr(songName, { limit: 1 }).then((res) => {
+            ytdl.getInfo(res.items[0].url).catch((err) => {
+                validUrl = false
+                console.error(err)
+            }).then((info) => {
+                if (validUrl) {
+                    try {
+                      const resource = createAudioResource(
+                        ytdl(res.items[0].url, { filter: "audioonly", quality: "highestaudio" })
+                      );
+                      const player = createAudioPlayer();
+                      const voiceChannel = getVoiceConnection(interaction.guild.id);
+                      if (!voiceChannel) {
+                        interaction.reply({
+                          content: "I am don`t connected to the voice channel.",
+                          ephemeral: true,
+                        });
+                      } else {
+                        voiceChannel.subscribe(player);
+                        player.play(resource);
+                        interaction.editReply({
+                          content: `Now playing: [${info.videoDetails.title}](${res.items[0].url})`,
+                          ephemeral: false,
+                        });
+                      }
+                    } catch (err) {
+                      console.log(err);
+                    }
+                }
             })
         })
     }

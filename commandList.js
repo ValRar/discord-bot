@@ -41,7 +41,7 @@ const commands = [
     .setName("leave")
     .setDescription("leaves from voice channel."),
   new SlashCommandBuilder()
-    .setName("play")
+    .setName("playurl")
     .setDescription("plays a music.")
     .addStringOption(
       new SlashCommandStringOption()
@@ -94,6 +94,15 @@ const commands = [
       new SlashCommandStringOption()
         .setName("query")
         .setDescription("what will be found in youtube")
+        .setRequired(true)
+    ),
+    new SlashCommandBuilder()
+    .setName("play")
+    .setDescription("plays a music.")
+    .addStringOption(
+      new SlashCommandStringOption()
+        .setName("name")
+        .setDescription("name of a song (ONLY YOUTUBE).")
         .setRequired(true)
     ),
 ];
