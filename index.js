@@ -1,6 +1,7 @@
-const { Client, GatewayIntentBits, RESTJSONErrorCodes, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, RESTJSONErrorCodes, EmbedBuilder, Routes } = require('discord.js');
 const Discordjs = require('discord.js')
 const { joinVoiceChannel, createAudioPlayer, getVoiceConnection, createAudioResource } = require('@discordjs/voice')
+const { REST } = require('@discordjs/rest');
 require('dotenv').config()
 require('ffmpeg')
 require('sodium')
@@ -101,7 +102,7 @@ client.on('interactionCreate', async (interaction) => {
             })
         } else {
             interaction.reply({
-                content: 'you doesn`t connected to the voice channel.',
+                content: 'you don`t connected to the voice channel.',
                 ephemeral: true,
             })
         }
@@ -229,14 +230,31 @@ client.on('interactionCreate', async (interaction) => {
         })
     }
 })
+client.on('voiceStateUpdate', async (oldState, newState) => {
+    // Если инициатор события - бот, игнорируем, во избежание перезаходов
+    if (newState.id === client.user.id) return;
+    // Если бот не в канале - прерываем дальнейшее выполнение
+    if (!newState.guild.me.voice.channelID) return;
+    // Если пользователь зашел в канал - прерываем
+    if (!oldState.channelID) return;
+    // Если бота нет в канале - прерываем
+    if (oldState.channelID !== newState.guild.me.voice.channelID) return;
+    // Определяем, вышел ли пользователь из канала. Если нет - прерываем
+    if (newState.channelID) return;
+    // Определяем значение гильдии, для удобности (и понятности)
+    let guild = newState.guild;
+    // Получаем объект канала
+    let channel = guild.channels.resolve(oldState.channelID);
+    // Если в канале есть кто-то кроме бота - прерываем
+    if (channel.members.size > 1) return;
+    // Выходим из канала и пишем сообщение
+    await guild.me.voice.setChannel(null);
+})
 
 client.on('guildCreate', (guild) => {
     addCommands(commands, guild.id)
 })
-
 function addCommands(commands, guildId) {
-const { Routes } = require('discord.js');
-const { REST } = require('@discordjs/rest');
 const clientId = process.env.clientId
 
 	commands.map(command => command.toJSON());
