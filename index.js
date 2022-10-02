@@ -234,20 +234,20 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
     let guild = newState.guild;
     const voiceConnection = getVoiceConnection(guild.id)
     // Если инициатор события - бот, игнорируем, во избежание перезаходов
-    if (newState.id === client.user.id) return console.log(1);
+    if (newState.id === client.user.id) return;
     // Если бот не в канале - прерываем дальнейшее выполнение
-    if (!voiceConnection) return console.log(2);
+    if (!voiceConnection) return;
     // Если пользователь зашел в канал - прерываем
-    if (!oldState.channelId) return console.log(3);
+    if (!oldState.channelId) return;
     // Если бота нет в канале - прерываем
-    if (oldState.channelId !== guild.members.resolve(client.user).voice.channelId) return console.log(4);
+    if (oldState.channelId !== guild.members.resolve(client.user).voice.channelId) return;
     // Определяем, вышел ли пользователь из канала. Если нет - прерываем
-    if (newState.channelId) return console.log(5);
+    if (newState.channelId) return;
     // Определяем значение гильдии, для удобности (и понятности)
     // Получаем объект канала
     let channel = guild.channels.resolve(oldState.channelId);
     // Если в канале есть кто-то кроме бота - прерываем
-    if (channel.members.size > 1) return console.log(6);
+    if (channel.members.size > 1) return;
     // Выходим из канала и пишем сообщение
     await voiceConnection.destroy();
 })
