@@ -33,6 +33,45 @@ client.once("ready", () => {
   console.log("Ready!");
 });
 
+function playurl(url, interaction) {
+  let validUrl = true;
+  ytdl
+    .getInfo(url)
+    .catch((err) => {
+      validUrl = false;
+      console.error(err);
+    })
+    .then((info) => {
+      if (validUrl) {
+        try {
+          const resource = createAudioResource(
+            ytdl(url, {
+              filter: "audioonly",
+              quality: "highestaudio",
+            })
+          );
+          const player = createAudioPlayer();
+          const voiceChannel = getVoiceConnection(interaction.guild.id);
+          if (!voiceChannel) {
+            interaction.editReply({
+              content: "I am don`t connected to the voice channel.",
+              ephemeral: true,
+            });
+          } else {
+            voiceChannel.subscribe(player);
+            player.play(resource);
+            interaction.editReply({
+              content: `Now playing: [${info.videoDetails.title}](${url})`,
+              ephemeral: false,
+            });
+          }
+        } catch (err) {
+          console.log(err);
+        }
+      }
+    });
+}
+
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
   const { commandName, options } = interaction;
@@ -43,7 +82,7 @@ client.on("interactionCreate", async (interaction) => {
       ephemeral: true,
     });
   } else if (commandName === "qrcode") {
-    await interaction.deferReply()
+    await interaction.deferReply();
     let source = options.getString("source");
     if (source) {
       source = source.replace(/ /gi, "%20");
@@ -54,7 +93,7 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
   } else if (commandName === "ban") {
-    await interaction.deferReply()
+    await interaction.deferReply();
     if (
       !interaction.member.permissions.has(
         Discordjs.PermissionsBitField.Flags.BanMembers
@@ -83,7 +122,7 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
   } else if (commandName === "unban") {
-    await interaction.deferReply()
+    await interaction.deferReply();
     if (
       !interaction.member.permissions.has(
         Discordjs.PermissionsBitField.Flags.Administrator
@@ -143,7 +182,7 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
   } else if (commandName === "leave") {
-    await interaction.deferReply()
+    await interaction.deferReply();
     const connection = getVoiceConnection(interaction.guild.id);
     if (connection) {
       connection.destroy();
@@ -157,51 +196,6 @@ client.on("interactionCreate", async (interaction) => {
         ephemeral: true,
       });
     }
-  } else if (commandName === "playurl") {
-    await interaction.deferReply();
-    const url = options.getString("url");
-    let validUrl = true;
-    ytdl
-      .getInfo(url)
-      .catch(() => {
-        validUrl = false;
-        console.log("error");
-      })
-      .then((info) => {
-        if (validUrl) {
-          try {
-            const resource = createAudioResource(
-              ytdl(url, { filter: "audioonly", quality: "highestaudio" })
-            );
-            const player = createAudioPlayer();
-            const voiceChannel = getVoiceConnection(interaction.guild.id);
-            if (!voiceChannel) {
-              interaction.editReply({
-                content: "I am don`t connected to the voice channel.",
-                ephemeral: true,
-              });
-            } else {
-              voiceChannel.subscribe(player);
-              player.play(resource);
-              interaction.editReply({
-                content: `Now playing: [${info.videoDetails.title}](${url})`,
-                ephemeral: false,
-              });
-            }
-          } catch (err) {
-            console.log(err);
-            interaction.editReply({
-              content: "an unknown error has occurred",
-              ephemeral: true,
-            });
-          }
-        } else {
-          interaction.editReply({
-            content: "Video with this url was not found.",
-            ephemeral: true,
-          });
-        }
-      });
   } else if (commandName === "mute") {
     if (
       interaction.member.permissions.has(
@@ -283,52 +277,21 @@ client.on("interactionCreate", async (interaction) => {
     });
   } else if (commandName === "play") {
     await interaction.deferReply();
-    let validUrl = true;
     const songName = options.getString("name");
-    ytsr(songName, { limit: 1 }).then((res) => {
-      if (res.items.length == 0) {
-        interaction.editReply({
-          content: "Couldn't find anything for your query",
-          ephemeral: true,
-        });
-        return;
-      }
-      ytdl
-        .getInfo(res.items[0].url)
-        .catch((err) => {
-          validUrl = false;
-          console.error(err);
-        })
-        .then((info) => {
-          if (validUrl) {
-            try {
-              const resource = createAudioResource(
-                ytdl(res.items[0].url, {
-                  filter: "audioonly",
-                  quality: "highestaudio",
-                })
-              );
-              const player = createAudioPlayer();
-              const voiceChannel = getVoiceConnection(interaction.guild.id);
-              if (!voiceChannel) {
-                interaction.editReply({
-                  content: "I am don`t connected to the voice channel.",
-                  ephemeral: true,
-                });
-              } else {
-                voiceChannel.subscribe(player);
-                player.play(resource);
-                interaction.editReply({
-                  content: `Now playing: [${info.videoDetails.title}](${res.items[0].url})`,
-                  ephemeral: false,
-                });
-              }
-            } catch (err) {
-              console.log(err);
-            }
-          }
-        });
-    });
+    if (ytdl.validateURL(songName)) {
+      playurl(songName, interaction);
+    } else {
+      ytsr(songName, { limit: 1 }).then((res) => {
+        if (res.items.length == 0) {
+          interaction.editReply({
+            content: "Couldn't find anything for your query",
+            ephemeral: true,
+          });
+          return;
+        }
+        playurl(res.items[0].url, interaction);
+      });
+    }
   }
 });
 client.on("voiceStateUpdate", async (oldState, newState) => {

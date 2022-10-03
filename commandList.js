@@ -41,15 +41,6 @@ const commands = [
     .setName("leave")
     .setDescription("leaves from voice channel."),
   new SlashCommandBuilder()
-    .setName("playurl")
-    .setDescription("plays a music.")
-    .addStringOption(
-      new SlashCommandStringOption()
-        .setName("url")
-        .setDescription("url of a song (ONLY YOUTUBE).")
-        .setRequired(true)
-    ),
-  new SlashCommandBuilder()
     .setName("mute")
     .setDescription("mute user for a certain time")
     .addUserOption(
