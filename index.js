@@ -43,22 +43,24 @@ client.on("interactionCreate", async (interaction) => {
       ephemeral: true,
     });
   } else if (commandName === "qrcode") {
+    await interaction.deferReply()
     let source = options.getString("source");
     if (source) {
       source = source.replace(/ /gi, "%20");
 
-      interaction.reply({
+      interaction.editReply({
         content: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${source}`,
         ephemeral: false,
       });
     }
   } else if (commandName === "ban") {
+    await interaction.deferReply()
     if (
       !interaction.member.permissions.has(
         Discordjs.PermissionsBitField.Flags.BanMembers
       )
     ) {
-      return interaction.reply({
+      return interaction.editReply({
         content: "You don`t have permission to ban members on this server.",
         ephemeral: true,
       });
@@ -70,23 +72,24 @@ client.on("interactionCreate", async (interaction) => {
       interaction.guild.members.ban(user, {
         reason: reason,
       });
-      interaction.reply({
+      interaction.editReply({
         content: `User ${user} was succesfully permanently banned with reason: ${reason}.`,
         ephemeral: false,
       });
     } catch {
-      interaction.reply({
+      interaction.editReply({
         content: "Bot can`t ban this user!",
         ephemeral: true,
       });
     }
   } else if (commandName === "unban") {
+    await interaction.deferReply()
     if (
       !interaction.member.permissions.has(
         Discordjs.PermissionsBitField.Flags.Administrator
       )
     ) {
-      return interaction.reply({
+      return interaction.editReply({
         content: "You don`t have permission to unban members on this server.",
         ephemeral: true,
       });
@@ -97,12 +100,12 @@ client.on("interactionCreate", async (interaction) => {
       .unban(user)
       .catch((err) => {
         if (err.code == RESTJSONErrorCodes.UnknownBan) {
-          interaction.reply({
+          interaction.editReply({
             content: "This user not banned.",
             ephemeral: true,
           });
         } else {
-          interaction.reply({
+          interaction.editReply({
             content: "Bot can`t unban this user.",
             ephemeral: true,
           });
@@ -111,7 +114,7 @@ client.on("interactionCreate", async (interaction) => {
       })
       .then(() => {
         if (isUnbannable) {
-          interaction.reply({
+          interaction.editReply({
             content: `User ${user} was succesfully unbanned.`,
             ephemeral: false,
           });
@@ -140,15 +143,16 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
   } else if (commandName === "leave") {
+    await interaction.deferReply()
     const connection = getVoiceConnection(interaction.guild.id);
     if (connection) {
       connection.destroy();
-      interaction.reply({
+      interaction.editReply({
         content: "Bot succesfully disconnected.",
         ephemeral: false,
       });
     } else {
-      interaction.reply({
+      interaction.editReply({
         content: "bot doesn`t connected to the voice channel.",
         ephemeral: true,
       });
@@ -307,7 +311,7 @@ client.on("interactionCreate", async (interaction) => {
               const player = createAudioPlayer();
               const voiceChannel = getVoiceConnection(interaction.guild.id);
               if (!voiceChannel) {
-                interaction.reply({
+                interaction.editReply({
                   content: "I am don`t connected to the voice channel.",
                   ephemeral: true,
                 });
