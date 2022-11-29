@@ -12,7 +12,7 @@ const {
   getVoiceConnection,
   createAudioResource,
 } = require("@discordjs/voice");
-const { REST } = require("@discordjs/rest");
+const { REST } = require("@discordjs/rest");w
 require("dotenv").config();
 require("ffmpeg");
 require("sodium");
@@ -28,6 +28,7 @@ const client = new Client({
   ],
 });
 const commands = require("./commandList").list;
+var port = process.env.PORT || 8080;
 // When the client is ready, run this code (only once)
 client.once("ready", () => {
   console.log("Ready!");
@@ -285,7 +286,6 @@ client.on("interactionCreate", async (interaction) => {
         if (res.items.length == 0) {
           interaction.editReply({
             content: "Couldn't find anything for your query",
-            ephemeral: true,
           });
           return;
         }
@@ -314,7 +314,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
   // Если в канале есть кто-то кроме бота - прерываем
   if (channel.members.size > 1) return;
   // Выходим из канала и пишем сообщение
-  await voiceConnection.destroy();
+  voiceConnection.destroy();
 });
 
 client.on("guildCreate", (guild) => {
