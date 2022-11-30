@@ -12,7 +12,7 @@ const {
   getVoiceConnection,
   createAudioResource,
 } = require("@discordjs/voice");
-const { REST } = require("@discordjs/rest");w
+const { REST } = require("@discordjs/rest");
 require("dotenv").config();
 require("ffmpeg");
 require("sodium");
