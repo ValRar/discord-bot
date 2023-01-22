@@ -11,13 +11,14 @@ const {
   createAudioPlayer,
   getVoiceConnection,
   createAudioResource,
+  NoSubscriberBehavior,
 } = require("@discordjs/voice");
 const { REST } = require("@discordjs/rest");
 require("dotenv").config();
 require("ffmpeg");
 require("sodium");
 const ytsr = require("ytsr");
-const ytdl = require("ytdl-core");
+const playDl = require("play-dl");
 // Create a new client instance
 const client = new Client({
   intents: [
@@ -28,49 +29,35 @@ const client = new Client({
   ],
 });
 const commands = require("./commandList").list;
-var port = process.env.PORT || 8080;
 // When the client is ready, run this code (only once)
 client.once("ready", () => {
   console.log("Ready!");
 });
 
-function playurl(url, interaction) {
-  let validUrl = true;
-  ytdl
-    .getInfo(url)
-    .catch((err) => {
-      validUrl = false;
-      console.error(err);
-    })
-    .then((info) => {
-      if (validUrl) {
-        try {
-          const resource = createAudioResource(
-            ytdl(url, {
-              filter: "audioonly",
-              quality: "highestaudio",
-            })
-          );
-          const player = createAudioPlayer();
-          const voiceChannel = getVoiceConnection(interaction.guild.id);
-          if (!voiceChannel) {
-            interaction.editReply({
-              content: "I am don`t connected to the voice channel.",
-              ephemeral: true,
-            });
-          } else {
-            voiceChannel.subscribe(player);
-            player.play(resource);
-            interaction.editReply({
-              content: `Now playing: [${info.videoDetails.title}](${url})`,
-              ephemeral: false,
-            });
-          }
-        } catch (err) {
-          console.log(err);
-        }
-      }
-    });
+async function playurl(url, interaction) {
+  if (playDl.yt_validate(url)) {
+    const  stream = await playDl.stream(url, { discordPlayerCompatibility: true })
+    const resource = createAudioResource(
+      stream.stream,
+      {inputType: stream.type}
+    );
+    const player = createAudioPlayer({behaviors: {noSubscriber: NoSubscriberBehavior}});
+    const voiceChannel = getVoiceConnection(interaction.guild.id);
+    if (!voiceChannel) {
+      interaction.editReply({
+        content: "I am don`t connected to the voice channel.",
+        ephemeral: true,
+      });
+    } else {
+      voiceChannel.subscribe(player);
+      player.play(resource);
+      const info = (await playDl.video_info(url)).video_details;
+      interaction.editReply({
+        content: `Now playing: [${info.title}](${url})`,
+        ephemeral: false,
+      });
+    }
+  }
 }
 
 client.on("interactionCreate", async (interaction) => {
@@ -279,18 +266,17 @@ client.on("interactionCreate", async (interaction) => {
   } else if (commandName === "play") {
     await interaction.deferReply();
     const songName = options.getString("name");
-    if (ytdl.validateURL(songName)) {
-      playurl(songName, interaction);
+    if (playDl.validate(songName)) {
+      await playurl(songName, interaction);
     } else {
-      ytsr(songName, { limit: 1 }).then((res) => {
-        if (res.items.length == 0) {
+      const res = await ytsr(songName, { limit: 1 })
+      if (res.items.length == 0) {
           interaction.editReply({
             content: "Couldn't find anything for your query",
           });
           return;
         }
-        playurl(res.items[0].url, interaction);
-      });
+        await playurl(res.items[0].url, interaction);
     }
   }
 });
