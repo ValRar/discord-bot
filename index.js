@@ -36,7 +36,15 @@ client.once("ready", () => {
 
 async function playurl(url, interaction) {
   if (playDl.yt_validate(url)) {
-    const  stream = await playDl.stream(url, { discordPlayerCompatibility: true })
+    try {
+      const  stream = await playDl.stream(url, { discordPlayerCompatibility: true })
+    } catch (e) {
+      interaction.editReply({
+        content: "Failed to play video",
+        ephemeral: false,
+      })
+      return
+    }
     const resource = createAudioResource(
       stream.stream,
       {inputType: stream.type}
