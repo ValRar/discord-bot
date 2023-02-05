@@ -36,9 +36,17 @@ client.once("ready", () => {
 
 async function playurl(url, interaction) {
   if (playDl.yt_validate(url)) {
+    let stream
     try {
-      const  stream = await playDl.stream(url, { discordPlayerCompatibility: true })
+      stream = await playDl.stream(url, { discordPlayerCompatibility: true })
     } catch (e) {
+      interaction.editReply({
+        content: "Failed to play video",
+        ephemeral: false,
+      })
+      return
+    }
+    if (!stream) {
       interaction.editReply({
         content: "Failed to play video",
         ephemeral: false,
@@ -165,7 +173,7 @@ client.on("interactionCreate", async (interaction) => {
       });
       try {
         await interaction.editReply({
-          content: "succesfully joined.",
+          content: "Succesfully joined.",
           ephemeral: false,
         });
       } catch (e) {
@@ -173,7 +181,7 @@ client.on("interactionCreate", async (interaction) => {
       }
     } else {
       interaction.editReply({
-        content: "you don`t connected to the voice channel.",
+        content: "You don`t connected to the voice channel.",
         ephemeral: true,
       });
     }
@@ -188,7 +196,7 @@ client.on("interactionCreate", async (interaction) => {
       });
     } else {
       interaction.editReply({
-        content: "bot doesn`t connected to the voice channel.",
+        content: "Bot doesn`t connected to the voice channel.",
         ephemeral: true,
       });
     }
@@ -206,14 +214,14 @@ client.on("interactionCreate", async (interaction) => {
         .then((members) => {
           members.timeout(time, reason);
           interaction.reply({
-            content: `user ${user} was succesfully muted for ${time} minutes by reason: ${reason}`,
+            content: `User ${user} was succesfully muted for ${time} minutes by reason: ${reason}`,
             ephemeral: false,
           });
         })
         .catch((err) => {
           console.log(err);
           interaction.reply({
-            content: "an error occurred while trying to mute the user",
+            content: "An error occurred while trying to mute the user",
             ephemeral: true,
           });
         });
@@ -236,14 +244,14 @@ client.on("interactionCreate", async (interaction) => {
         .then((members) => {
           members.timeout(null, reason);
           interaction.reply({
-            content: `user ${user} was succesfully unmuted by reason: ${reason}`,
+            content: `User ${user} was succesfully unmuted by reason: ${reason}`,
             ephemeral: false,
           });
         })
         .catch((err) => {
           console.log(err);
           interaction.reply({
-            content: "an error occurred while trying to unmute the user",
+            content: "An error occurred while trying to unmute the user",
             ephemeral: true,
           });
         });
