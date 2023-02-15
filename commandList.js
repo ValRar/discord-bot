@@ -96,5 +96,11 @@ const commands = [
         .setDescription("name of a song (ONLY YOUTUBE).")
         .setRequired(true)
     ),
+    new SlashCommandBuilder()
+    .setName("pause")
+    .setDescription("Pauses soundtrack."),
+    new SlashCommandBuilder()
+    .setName("resume")
+    .setDescription("Resumes soundtrack.")
 ];
 exports.list = commands
