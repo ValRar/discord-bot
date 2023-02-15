@@ -29,6 +29,7 @@ const client = new Client({
   ],
 });
 const commands = require("./commandList").list;
+const queries = {}
 // When the client is ready, run this code (only once)
 client.once("ready", () => {
   console.log("Ready!");
@@ -67,6 +68,7 @@ async function playurl(url, interaction) {
     } else {
       voiceChannel.subscribe(player);
       player.play(resource);
+      queries[interaction.guildId] = player
       const info = (await playDl.video_info(url)).video_details;
       interaction.editReply({
         content: `Now playing: [${info.title}](${url})`,
@@ -294,6 +296,8 @@ client.on("interactionCreate", async (interaction) => {
         }
         await playurl(res.items[0].url, interaction);
     }
+  } else if (commandName === "pause") {
+    queries[interaction.guildId].pause()
   }
 });
 client.on("voiceStateUpdate", async (oldState, newState) => {
