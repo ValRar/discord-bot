@@ -12,6 +12,7 @@ const {
   getVoiceConnection,
   createAudioResource,
   NoSubscriberBehavior,
+  AudioPlayerStatus,
 } = require("@discordjs/voice");
 const { REST } = require("@discordjs/rest");
 require("dotenv").config();
@@ -29,11 +30,15 @@ const client = new Client({
   ],
 });
 const commands = require("./commandList").list;
-const queries = {}
+const queries = new Map()
 // When the client is ready, run this code (only once)
 client.once("ready", () => {
   console.log("Ready!");
 });
+
+function onLeave(guildId) {
+  queries.delete(guildId)
+}
 
 async function playurl(url, interaction) {
   if (playDl.yt_validate(url)) {
@@ -51,7 +56,7 @@ async function playurl(url, interaction) {
       interaction.editReply({
         content: "Failed to play video",
         ephemeral: false,
-      })
+      })//Сделай проверку на длину массива очереди. Сделай комманду на добавление в очередь
       return
     }
     const resource = createAudioResource(
@@ -59,6 +64,27 @@ async function playurl(url, interaction) {
       {inputType: stream.type}
     );
     const player = createAudioPlayer({behaviors: {noSubscriber: NoSubscriberBehavior}});
+    player.on(AudioPlayerStatus.Idle, async () => {
+      let currentQuery = queries.get(interaction.guildId)
+      currentQuery.query.shift()
+      if (currentQuery.query.length === 0) return
+      let stream
+      try {
+        stream = await playDl.stream(currentQuery.query[0], { discordPlayerCompatibility: true })
+      } catch (e) {
+        interaction.editReply({
+          content: "Failed to play video",
+          ephemeral: false,
+        })
+        queries.set(interaction.guildId, currentQuery)
+        return
+      }
+      const resource = createAudioResource(
+        stream.stream,
+        {inputType: stream.type}
+      );
+      player.play(resource);
+    });
     const voiceChannel = getVoiceConnection(interaction.guild.id);
     if (!voiceChannel) {
       interaction.editReply({
@@ -68,7 +94,11 @@ async function playurl(url, interaction) {
     } else {
       voiceChannel.subscribe(player);
       player.play(resource);
-      queries[interaction.guildId] = player
+      let currentQuery = {
+        query: [url],
+        player: player,
+      }
+      queries.set(interaction.guildId, currentQuery)
       const info = (await playDl.video_info(url)).video_details;
       interaction.editReply({
         content: `Now playing: [${info.title}](${url})`,
@@ -191,6 +221,7 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply();
     const connection = getVoiceConnection(interaction.guild.id);
     if (connection) {
+      onLeave(interaction.guildId)
       connection.destroy();
       interaction.editReply({
         content: "Bot succesfully disconnected.",
@@ -267,8 +298,7 @@ client.on("interactionCreate", async (interaction) => {
     const searchWord = options.getString("query");
     ytsr(searchWord, { limit: 10 }).then((res) => {
       let searchRes = [];
-      res.items.map((item, index) => {
-        index++;
+      res.items.map((item) => {
         const embed = new EmbedBuilder().setTitle(item.title).setURL(item.url);
         try {
           embed.setImage(item.thumbnails[0].url);
@@ -285,7 +315,13 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply();
     const songName = options.getString("name");
     if (playDl.validate(songName)) {
-      await playurl(songName, interaction);
+      if (!queries.get(interaction.guildId)) {
+        await playurl(songName, interaction);
+      } else {
+        const currentQuery = queries.get(interaction.guildId)
+        currentQuery.query.push(songName)
+        queries.set(interaction.guildId, currentQuery)
+      }
     } else {
       const res = await ytsr(songName, { limit: 1 })
       if (res.items.length == 0) {
@@ -294,10 +330,27 @@ client.on("interactionCreate", async (interaction) => {
           });
           return;
         }
-        await playurl(res.items[0].url, interaction);
+        if (!queries.get(interaction.guildId)) {
+          await playurl(res.items[0].url, interaction);
+        } else {
+          const currentQuery = queries.get(interaction.guildId)
+          currentQuery.query.push(res.items[0].url)
+          queries.set(interaction.guildId, currentQuery)
+        }
     }
+    console.log(queries)
   } else if (commandName === "pause") {
-    queries[interaction.guildId].pause()
+    await interaction.deferReply();
+    queries.get(interaction.guildId).player.pause()
+    interaction.editReply({
+      content: "Sound successfully paused"
+    })
+  } else if (commandName === "resume") {
+    await interaction.deferReply();
+    queries.get(interaction.guildId).player.unpause()
+    interaction.editReply({
+      content: "Sound successfully resumed"
+    })
   }
 });
 client.on("voiceStateUpdate", async (oldState, newState) => {
@@ -321,6 +374,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
   if (channel.members.size > 1) return;
   // Выходим из канала и пишем сообщение
   voiceConnection.destroy();
+  onLeave(newState.guild.id)
 });
 
 client.on("guildCreate", (guild) => {
