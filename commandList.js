@@ -101,6 +101,9 @@ const commands = [
     .setDescription("Pauses soundtrack."),
     new SlashCommandBuilder()
     .setName("resume")
-    .setDescription("Resumes soundtrack.")
+    .setDescription("Resumes soundtrack."),
+    new SlashCommandBuilder()
+    .setName("list")
+    .setDescription("Shows the play query.")
 ];
 exports.list = commands
