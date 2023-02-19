@@ -320,7 +320,11 @@ client.on("interactionCreate", async (interaction) => {
       } else {
         const currentQuery = queries.get(interaction.guildId)
         currentQuery.query.push(songName)
+        const info = await (await playDl.video_info(songName)).video_details
         queries.set(interaction.guildId, currentQuery)
+        interaction.editReply({
+          content: `[${info.title}](${songName}) added to play query on ${currentQuery.query.length - 1}th place.`
+        })
       }
     } else {
       const res = await ytsr(songName, { limit: 1 })
@@ -336,6 +340,10 @@ client.on("interactionCreate", async (interaction) => {
           const currentQuery = queries.get(interaction.guildId)
           currentQuery.query.push(res.items[0].url)
           queries.set(interaction.guildId, currentQuery)
+          const info = (await playDl.video_info(res.items[0].url)).video_details;
+          interaction.editReply({
+            content: `[${info.title}](${res.items[0].url}) added to play query on ${currentQuery.query.length - 1}th place.`
+          })
         }
     }
     console.log(queries)
