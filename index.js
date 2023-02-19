@@ -323,7 +323,7 @@ client.on("interactionCreate", async (interaction) => {
         const info = await (await playDl.video_info(songName)).video_details
         queries.set(interaction.guildId, currentQuery)
         interaction.editReply({
-          content: `[${info.title}](${songName}) added to play query on ${currentQuery.query.length - 1}th place.`
+          content: `[${info.title}](${songName}) added to play query on ${currentQuery.query.length}th place.`
         })
       }
     } else {
@@ -346,7 +346,6 @@ client.on("interactionCreate", async (interaction) => {
           })
         }
     }
-    console.log(queries)
   } else if (commandName === "pause") {
     await interaction.deferReply();
     queries.get(interaction.guildId).player.pause()
@@ -361,14 +360,28 @@ client.on("interactionCreate", async (interaction) => {
     })
   } else if (commandName === "list") {
     await interaction.deferReply()
-    const list = queries.get(interaction.guildId).query
-    let listStr = ""
-    for (let url of list) {
-      listStr.concat(`[${await playDl.video_info(url).video_details.title}](${url})`)
+    let urls
+    try {    
+      urls = queries.get(interaction.guildId).query 
+    } catch (ignore) {
+      interaction.editReply({
+        content: "None.",
+      })
+      return
     }
-    interaction.editReply({
-      content: listStr,
-    })
+    let listStr = ""
+    for (let i = 0; i < urls.length; i++) {
+      listStr = listStr.concat(`${i + 1}. [${(await playDl.video_info(urls[i])).video_details.title}](<${urls[i]}>)\n`)
+    }
+    if (listStr !== "") {
+      interaction.editReply({
+        content: listStr,
+      })
+    } else {
+      interaction.editReply({
+        content: "None.",
+      })
+    }
   }
 });
 client.on("voiceStateUpdate", async (oldState, newState) => {
