@@ -351,6 +351,16 @@ client.on("interactionCreate", async (interaction) => {
     interaction.editReply({
       content: "Sound successfully resumed"
     })
+  } else if (commandName === "list") {
+    await interaction.deferReply()
+    const list = queries.get(interaction.guildId).query
+    let listStr = ""
+    for (let url of list) {
+      listStr.concat(`[${await playDl.video_info(url).video_details.title}](${url})`)
+    }
+    interaction.editReply({
+      content: listStr,
+    })
   }
 });
 client.on("voiceStateUpdate", async (oldState, newState) => {
