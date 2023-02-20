@@ -105,8 +105,8 @@ const commands = [
     new SlashCommandBuilder()
     .setName("query")
     .setDescription("Manipulations with play query.")
-    .addSubcommand(new SlashCommandSubcommandBuilder().setName("list"))
-    .addSubcommand(new SlashCommandSubcommandBuilder().setName("clear"))
-    .addSubcommand(new SlashCommandSubcommandBuilder().setName("skip"))
+    .addSubcommand(new SlashCommandSubcommandBuilder().setName("list").setDescription("Show play query."))
+    .addSubcommand(new SlashCommandSubcommandBuilder().setName("clear").setDescription("Clear query list. (only administrator)"))
+    .addSubcommand(new SlashCommandSubcommandBuilder().setName("skip").setDescription("Vote for the skip."))
 ];
 exports.list = commands
