@@ -94,9 +94,14 @@ async function playurl(url, interaction) {
     } else {
       voiceChannel.subscribe(player);
       player.play(resource);
-      let currentQuery = {
+      let currentQuery = { //query declaration
         query: [url],
         player: player,
+        skipVote: {
+          maxVotes: 0,
+          currentVotes: 0,
+          isVoting: false,
+        }
       }
       queries.set(interaction.guildId, currentQuery)
       const info = (await playDl.video_info(url)).video_details;
@@ -358,29 +363,49 @@ client.on("interactionCreate", async (interaction) => {
     interaction.editReply({
       content: "Sound successfully resumed"
     })
-  } else if (commandName === "list") {
-    await interaction.deferReply()
-    let urls
-    try {    
-      urls = queries.get(interaction.guildId).query 
-    } catch (ignore) {
-      interaction.editReply({
-        content: "None.",
+  } else if (commandName === "query") {
+    if (options.getSubcommand() === "list") {
+      await interaction.deferReply()
+      let urls
+      try {    
+        urls = queries.get(interaction.guildId).query 
+      } catch (ignore) {
+        interaction.editReply({
+          content: "None.",
+        })
+        return
+      }
+      let listStr = ""
+      for (let i = 0; i < urls.length; i++) {
+        listStr = listStr.concat(`${i + 1}. [${(await playDl.video_info(urls[i])).video_details.title}](<${urls[i]}>)\n`)
+      }
+      if (listStr !== "") {
+        interaction.editReply({
+          content: listStr,
+        })
+      } else {
+        interaction.editReply({
+          content: "None.",
+        })
+      } 
+    } else if (options.getSubcommand() === "clear") {
+      if (interaction.member.permissions.has(Discordjs.PermissionsBitField.Flags.Administrator)) {
+        const guildQuery = queries.get(interaction.guildId)
+        if (guildQuery) {
+          queries.delete(interaction.guildId)
+        }
+      } else {
+        interaction.reply({
+          content: "You haven`t permission to clear play query!",
+          ephemeral: true,
+        })
+        return
+      }
+      interaction.reply({
+        content: "Play query was succesfully cleared."
       })
-      return
-    }
-    let listStr = ""
-    for (let i = 0; i < urls.length; i++) {
-      listStr = listStr.concat(`${i + 1}. [${(await playDl.video_info(urls[i])).video_details.title}](<${urls[i]}>)\n`)
-    }
-    if (listStr !== "") {
-      interaction.editReply({
-        content: listStr,
-      })
-    } else {
-      interaction.editReply({
-        content: "None.",
-      })
+    } else if (options.getSubcommand() === "skip") {
+      
     }
   }
 });

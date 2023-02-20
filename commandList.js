@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, SlashCommandUserOption, SlashCommandStringOption, SlashCommandNumberOption } = require('discord.js')
+const { SlashCommandBuilder, SlashCommandUserOption, SlashCommandStringOption, SlashCommandNumberOption, SlashCommandSubcommandBuilder } = require('discord.js')
 const commands = [
   new SlashCommandBuilder().setName("ping").setDescription("send pong."),
   new SlashCommandBuilder()
@@ -103,7 +103,10 @@ const commands = [
     .setName("resume")
     .setDescription("Resumes soundtrack."),
     new SlashCommandBuilder()
-    .setName("list")
-    .setDescription("Shows the list of songs to be played.")
+    .setName("query")
+    .setDescription("Manipulations with play query.")
+    .addSubcommand(new SlashCommandSubcommandBuilder().setName("list"))
+    .addSubcommand(new SlashCommandSubcommandBuilder().setName("clear"))
+    .addSubcommand(new SlashCommandSubcommandBuilder().setName("skip"))
 ];
 exports.list = commands
