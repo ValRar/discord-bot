@@ -56,7 +56,7 @@ async function playurl(url, interaction) {
       interaction.editReply({
         content: "Failed to play video",
         ephemeral: false,
-      })//Сделай проверку на длину массива очереди. Сделай комманду на добавление в очередь
+      })
       return
     }
     const resource = createAudioResource(
@@ -66,6 +66,7 @@ async function playurl(url, interaction) {
     const player = createAudioPlayer({behaviors: {noSubscriber: NoSubscriberBehavior}});
     player.on(AudioPlayerStatus.Idle, async () => {
       let currentQuery = queries.get(interaction.guildId)
+      if (!currentQuery) return
       currentQuery.query.shift()
       if (currentQuery.query.length === 0) return
       let stream
@@ -392,6 +393,7 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.member.permissions.has(Discordjs.PermissionsBitField.Flags.Administrator)) {
         const guildQuery = queries.get(interaction.guildId)
         if (guildQuery) {
+          guildQuery.player.stop()
           queries.delete(interaction.guildId)
         }
       } else {
