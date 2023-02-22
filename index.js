@@ -101,11 +101,6 @@ async function playurl(url, interaction) {
         //query declaration
         query: [url],
         player: player,
-        skipVote: {
-          maxVotes: 2,
-          currentVotes: 0,
-          isVoting: false,
-        },
       };
       queries.set(interaction.guildId, currentQuery);
       const info = (await playDl.video_info(url)).video_details;
@@ -420,44 +415,41 @@ client.on("interactionCreate", async (interaction) => {
         content: "Play query was succesfully cleared.",
       });
     } else if (options.getSubcommand() === "skip") {
-      let guildInfo = queries.get(interaction.guildId)
+      await interaction.deferReply();
+      let guildInfo = queries.get(interaction.guildId);
       if (guildInfo) {
-        guildInfo.skipVote.currentVotes++
-        interaction.reply({
-          content: `${guildInfo.skipVote.currentVotes}`
-        })
-        if (guildInfo.skipVote.currentVotes >= guildInfo.skipVote.maxVotes) {
-          guildInfo.query.shift();
-          if (guildInfo.query.length === 0) return;
-          let stream;
-          try {
-            stream = await playDl.stream(guildInfo.query[0], {
-              discordPlayerCompatibility: true,
-            });
-          } catch (e) {
-            interaction.editReply({
-              content: "Failed to play video",
-              ephemeral: false,
-            });
-            queries.set(interaction.guildId, guildInfo);
-            return;
-          }
+        guildInfo.query.shift();
+        let stream;
+        try {
+          stream = await playDl.stream(guildInfo.query[0], {
+            discordPlayerCompatibility: true,
+          });
+        } catch (e) {
+          guildInfo.player.stop();
+          interaction.editReply({
+            content: "Skipped.",
+            ephemeral: false,
+          });
+        }
+        if (stream) {
           const resource = createAudioResource(stream.stream, {
             inputType: stream.type,
           });
           guildInfo.player.play(resource);
+          const info = (await playDl.video_info(guildInfo.query[0]))
+            .video_details;
+          interaction.editReply({
+            content: `Now playing: [${info.title}](${guildInfo.query[0]})`,
+            ephemeral: false,
+          });
         }
+      } else {
+        interaction.editReply({
+          content: "There is nothing to skip.",
+          ephemeral: true,
+        });
       }
-      // let currentQuery = {
-      //   //query declaration
-      //   query: [url],
-      //   player: player,
-      //   skipVote: {
-      //     maxVotes: 0,
-      //     currentVotes: 0,
-      //     isVoting: false,
-      //   },
-      // };
+      queries.set(interaction.guildId, guildInfo);
     }
   }
 });
