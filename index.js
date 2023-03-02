@@ -13,6 +13,7 @@ const {
   createAudioResource,
   NoSubscriberBehavior,
   AudioPlayerStatus,
+  VoiceConnectionStatus,
 } = require("@discordjs/voice");
 const { REST } = require("@discordjs/rest");
 require("dotenv").config();
@@ -202,11 +203,15 @@ client.on("interactionCreate", async (interaction) => {
   } else if (commandName === "join") {
     await interaction.deferReply();
     if (interaction.member.voice.channelId) {
-      joinVoiceChannel({
+      const connection = joinVoiceChannel({
         channelId: interaction.member.voice.channelId,
         guildId: interaction.guild.id,
         adapterCreator: interaction.guild.voiceAdapterCreator,
       });
+      connection.on(VoiceConnectionStatus.Disconnected, () => {
+        queries.delete(interaction.guildId)
+        connection.destroy()
+      })
       try {
         await interaction.editReply({
           content: "Succesfully joined.",
