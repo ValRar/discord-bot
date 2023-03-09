@@ -15,8 +15,6 @@ const {
 } = require("@discordjs/voice");
 const { REST } = require("@discordjs/rest");
 require("dotenv").config();
-require("ffmpeg");
-require("sodium");
 const ytsr = require("ytsr");
 const playDl = require("play-dl");
 // Create a new client instance
@@ -33,7 +31,6 @@ const commands = require("./commandList").list;
 client.once("ready", () => {
   console.log("Ready!");
 });
-
 async function playurl(url, interaction) {
   if (playDl.yt_validate(url)) {
     let stream
@@ -57,15 +54,19 @@ async function playurl(url, interaction) {
       stream.stream,
       {inputType: stream.type}
     );
-    const player = createAudioPlayer({behaviors: {noSubscriber: NoSubscriberBehavior}});
-    const voiceChannel = getVoiceConnection(interaction.guild.id);
-    if (!voiceChannel) {
+    const player = createAudioPlayer({behaviors: {noSubscriber: NoSubscriberBehavior.Play}});
+    const voiceConnection = joinVoiceChannel({
+      channelId: interaction.member.voice.channelId,
+      guildId: interaction.guild.id,
+      adapterCreator: interaction.guild.voiceAdapterCreator,
+    });
+    if (!voiceConnection) {
       interaction.editReply({
         content: "I am don`t connected to the voice channel.",
         ephemeral: true,
       });
     } else {
-      voiceChannel.subscribe(player);
+      voiceConnection.subscribe(player)
       player.play(resource);
       const info = (await playDl.video_info(url)).video_details;
       interaction.editReply({
@@ -166,10 +167,22 @@ client.on("interactionCreate", async (interaction) => {
   } else if (commandName === "join") {
     await interaction.deferReply();
     if (interaction.member.voice.channelId) {
-      joinVoiceChannel({
+      const voiceConnection = joinVoiceChannel({
         channelId: interaction.member.voice.channelId,
         guildId: interaction.guild.id,
         adapterCreator: interaction.guild.voiceAdapterCreator,
+      });
+      const networkStateChangeHandler = (oldNetworkState, newNetworkState) => {
+        const newUdp = Reflect.get(newNetworkState, 'udp');
+        clearInterval(newUdp?.keepAliveInterval);
+      }
+      
+      voiceConnection.on('stateChange', (oldState, newState) => {
+        const oldNetworking = Reflect.get(oldState, 'networking');
+        const newNetworking = Reflect.get(newState, 'networking');
+      
+        oldNetworking?.off('stateChange', networkStateChangeHandler);
+        newNetworking?.on('stateChange', networkStateChangeHandler);
       });
       try {
         await interaction.editReply({
