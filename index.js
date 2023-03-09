@@ -33,6 +33,12 @@ client.once("ready", () => {
 });
 async function playurl(url, interaction) {
   if (playDl.yt_validate(url)) {
+    if (!interaction.member.voice.channelId) {
+      return interaction.editReply({
+        content: "You are not connected to the voice channel.",
+        ephemeral: true,
+      });
+    }
     let stream
     try {
       stream = await playDl.stream(url, { discordPlayerCompatibility: true })
@@ -72,20 +78,13 @@ async function playurl(url, interaction) {
       oldNetworking?.off('stateChange', networkStateChangeHandler);
       newNetworking?.on('stateChange', networkStateChangeHandler);
     });
-    if (!voiceConnection) {
-      interaction.editReply({
-        content: "I am don`t connected to the voice channel.",
-        ephemeral: true,
-      });
-    } else {
-      voiceConnection.subscribe(player)
-      player.play(resource);
-      const info = (await playDl.video_info(url)).video_details;
-      interaction.editReply({
-        content: `Now playing: [${info.title}](${url})`,
-        ephemeral: false,
-      });
-    }
+    voiceConnection.subscribe(player)
+    player.play(resource);
+    const info = (await playDl.video_info(url)).video_details;
+    interaction.editReply({
+      content: `Now playing: [${info.title}](${url})`,
+      ephemeral: false,
+    });
   }
 }
 
