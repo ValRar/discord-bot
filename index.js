@@ -17,8 +17,6 @@ const {
 } = require("@discordjs/voice");
 const { REST } = require("@discordjs/rest");
 require("dotenv").config();
-require("ffmpeg");
-require("sodium");
 const ytsr = require("ytsr");
 const playDl = require("play-dl");
 // Create a new client instance
@@ -43,7 +41,13 @@ function onLeave(guildId) {
 
 async function playurl(url, interaction) {
   if (playDl.yt_validate(url)) {
-    let stream;
+    if (!interaction.member.voice.channelId) {
+      return interaction.editReply({
+        content: "You are not connected to the voice channel.",
+        ephemeral: true,
+      });
+    }
+    let stream
     try {
       stream = await playDl.stream(url, { discordPlayerCompatibility: true });
     } catch (e) {
@@ -64,7 +68,7 @@ async function playurl(url, interaction) {
       inputType: stream.type,
     });
     const player = createAudioPlayer({
-      behaviors: { noSubscriber: NoSubscriberBehavior },
+      behaviors: { noSubscriber: NoSubscriberBehavior.Play },
     });
     player.on(AudioPlayerStatus.Idle, async () => {
       let currentQuery = queries.get(interaction.guildId);
@@ -89,27 +93,37 @@ async function playurl(url, interaction) {
       });
       player.play(resource);
     });
-    const voiceChannel = getVoiceConnection(interaction.guild.id);
-    if (!voiceChannel) {
-      interaction.editReply({
-        content: "I am don`t connected to the voice channel.",
-        ephemeral: true,
-      });
-    } else {
-      voiceChannel.subscribe(player);
-      player.play(resource);
+    const voiceConnection = joinVoiceChannel({
+      channelId: interaction.member.voice.channelId,
+      guildId: interaction.guild.id,
+      adapterCreator: interaction.guild.voiceAdapterCreator,
+    });
+    const networkStateChangeHandler = (oldNetworkState, newNetworkState) => {
+      const newUdp = Reflect.get(newNetworkState, 'udp');
+      clearInterval(newUdp?.keepAliveInterval);
+    }
+    
+    voiceConnection.on('stateChange', (oldState, newState) => {
+      const oldNetworking = Reflect.get(oldState, 'networking');
+      const newNetworking = Reflect.get(newState, 'networking');
+    
+      oldNetworking?.off('stateChange', networkStateChangeHandler);
+      newNetworking?.on('stateChange', networkStateChangeHandler);
+    });
+    voiceConnection.subscribe(player)
+    player.play(resource);
       let currentQuery = {
         //query declaration
         query: [url],
         player: player,
+        membersInVoice: 0
       };
       queries.set(interaction.guildId, currentQuery);
-      const info = (await playDl.video_info(url)).video_details;
-      interaction.editReply({
-        content: `Now playing: [${info.title}](${url})`,
-        ephemeral: false,
-      });
-    }
+    const info = (await playDl.video_info(url)).video_details;
+    interaction.editReply({
+      content: `Now playing: [${info.title}](${url})`,
+      ephemeral: false,
+    });
   }
 }
 
@@ -203,7 +217,7 @@ client.on("interactionCreate", async (interaction) => {
   } else if (commandName === "join") {
     await interaction.deferReply();
     if (interaction.member.voice.channelId) {
-      const connection = joinVoiceChannel({
+      const voiceConnection = joinVoiceChannel({
         channelId: interaction.member.voice.channelId,
         guildId: interaction.guild.id,
         adapterCreator: interaction.guild.voiceAdapterCreator,
@@ -212,6 +226,18 @@ client.on("interactionCreate", async (interaction) => {
         queries.delete(interaction.guildId)
         connection.destroy()
       })
+      const networkStateChangeHandler = (oldNetworkState, newNetworkState) => {
+        const newUdp = Reflect.get(newNetworkState, 'udp');
+        clearInterval(newUdp?.keepAliveInterval);
+      }
+      
+      voiceConnection.on('stateChange', (oldState, newState) => {
+        const oldNetworking = Reflect.get(oldState, 'networking');
+        const newNetworking = Reflect.get(newState, 'networking');
+      
+        oldNetworking?.off('stateChange', networkStateChangeHandler);
+        newNetworking?.on('stateChange', networkStateChangeHandler);
+      });
       try {
         await interaction.editReply({
           content: "Succesfully joined.",
@@ -323,7 +349,7 @@ client.on("interactionCreate", async (interaction) => {
   } else if (commandName === "play") {
     await interaction.deferReply();
     const songName = options.getString("name");
-    if (playDl.validate(songName)) {
+    if (await playDl.validate(songName) === "yt_video") {
       if (!queries.get(interaction.guildId)) {
         await playurl(songName, interaction);
       } else {
@@ -336,23 +362,23 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
     } else {
-      const res = await ytsr(songName, { limit: 1 });
-      if (res.items.length == 0) {
+      const res = await playDl.search(songName, { source: { youtube: "video" }, limit: 1})
+      if (res.length == 0) {
         interaction.editReply({
           content: "Couldn't find anything for your query",
         });
         return;
       }
       if (!queries.get(interaction.guildId)) {
-        await playurl(res.items[0].url, interaction);
+        await playurl(res[0].url, interaction);
       } else {
         const currentQuery = queries.get(interaction.guildId);
-        currentQuery.query.push(res.items[0].url);
+        currentQuery.query.push(res[0].url);
         queries.set(interaction.guildId, currentQuery);
-        const info = (await playDl.video_info(res.items[0].url)).video_details;
+        const title = res[0].title
         interaction.editReply({
-          content: `[${info.title}](${
-            res.items[0].url
+          content: `[${title}](${
+            res[0].url
           }) added to play query on ${currentQuery.query.length - 1}th place.`,
         });
       }
@@ -423,6 +449,13 @@ client.on("interactionCreate", async (interaction) => {
       await interaction.deferReply();
       let guildInfo = queries.get(interaction.guildId);
       if (guildInfo) {
+        if (guildInfo.membersInVoice === 0) guildInfo.membersInVoice = interaction.member.voice.channel.members.length
+        if (guildInfo.membersInVoice-- > 0) {
+          return interaction.reply( {
+            content: `For skipping song you need ${membersInVoice} more skip requests.`
+          })
+        }
+
         guildInfo.query.shift();
         let stream;
         try {
