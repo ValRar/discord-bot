@@ -222,9 +222,9 @@ client.on("interactionCreate", async (interaction) => {
         guildId: interaction.guild.id,
         adapterCreator: interaction.guild.voiceAdapterCreator,
       });
-      connection.on(VoiceConnectionStatus.Disconnected, () => {
+      voiceConnection.on(VoiceConnectionStatus.Disconnected, () => {
         queries.delete(interaction.guildId)
-        connection.destroy()
+        voiceConnection.destroy()
       })
       const networkStateChangeHandler = (oldNetworkState, newNetworkState) => {
         const newUdp = Reflect.get(newNetworkState, 'udp');
