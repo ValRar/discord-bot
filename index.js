@@ -306,17 +306,17 @@ client.on("interactionCreate", async (interaction) => {
   } else if (commandName === "play") {
     await interaction.deferReply();
     const songName = options.getString("name");
-    if (playDl.validate(songName)) {
+    if (await playDl.validate(songName) === "yt_video") {
       await playurl(songName, interaction);
     } else {
-      const res = await ytsr(songName, { limit: 1 })
-      if (res.items.length == 0) {
+      const res = await playDl.search(songName, { source: { youtube: "video" }, limit: 1})
+      if (res.length === 0) {
           interaction.editReply({
             content: "Couldn't find anything for your query",
           });
           return;
         }
-        await playurl(res.items[0].url, interaction);
+        await playurl(res[0].url, interaction);
     }
   }
 });
