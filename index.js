@@ -98,6 +98,10 @@ async function playurl(url, interaction) {
       guildId: interaction.guild.id,
       adapterCreator: interaction.guild.voiceAdapterCreator,
     });
+    voiceConnection.on(VoiceConnectionStatus.Disconnected, () => {
+      queries.delete(interaction.guildId)
+      voiceConnection.destroy()
+    })
     const networkStateChangeHandler = (oldNetworkState, newNetworkState) => {
       const newUdp = Reflect.get(newNetworkState, 'udp');
       clearInterval(newUdp?.keepAliveInterval);
