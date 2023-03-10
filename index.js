@@ -449,10 +449,13 @@ client.on("interactionCreate", async (interaction) => {
       await interaction.deferReply();
       let guildInfo = queries.get(interaction.guildId);
       if (guildInfo) {
-        if (guildInfo.membersInVoice === 0) guildInfo.membersInVoice = interaction.member.voice.channel.members.length
-        if (guildInfo.membersInVoice-- > 0) {
-          return interaction.reply( {
-            content: `For skipping song you need ${membersInVoice} more skip requests.`
+        if (guildInfo.membersInVoice === 0) guildInfo.membersInVoice = interaction.member.voice.channel.members.size - 1
+        console.log(interaction.member.voice.channel.members.size)
+        guildInfo.membersInVoice--
+        if (guildInfo.membersInVoice > 0) {
+          console.log(guildInfo.membersInVoice)
+          return interaction.editReply( {
+            content: `For skipping song you need ${guildInfo.membersInVoice} more skip requests.`
           })
         }
 
