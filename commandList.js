@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, SlashCommandUserOption, SlashCommandStringOption, SlashCommandNumberOption } = require('discord.js')
+const { SlashCommandBuilder, SlashCommandUserOption, SlashCommandStringOption, SlashCommandNumberOption, SlashCommandSubcommandBuilder } = require('discord.js')
 const commands = [
   new SlashCommandBuilder().setName("ping").setDescription("send pong."),
   new SlashCommandBuilder()
@@ -96,5 +96,17 @@ const commands = [
         .setDescription("name of a song (ONLY YOUTUBE).")
         .setRequired(true)
     ),
+    new SlashCommandBuilder()
+    .setName("pause")
+    .setDescription("Pauses soundtrack."),
+    new SlashCommandBuilder()
+    .setName("resume")
+    .setDescription("Resumes soundtrack."),
+    new SlashCommandBuilder()
+    .setName("query")
+    .setDescription("Manipulations with play query.")
+    .addSubcommand(new SlashCommandSubcommandBuilder().setName("list").setDescription("Show play query."))
+    .addSubcommand(new SlashCommandSubcommandBuilder().setName("clear").setDescription("Clear query list. (only administrator)"))
+    .addSubcommand(new SlashCommandSubcommandBuilder().setName("skip").setDescription("Vote for the skip."))
 ];
 exports.list = commands

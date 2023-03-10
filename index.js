@@ -12,6 +12,8 @@ const {
   getVoiceConnection,
   createAudioResource,
   NoSubscriberBehavior,
+  AudioPlayerStatus,
+  VoiceConnectionStatus,
 } = require("@discordjs/voice");
 const { REST } = require("@discordjs/rest");
 require("dotenv").config();
@@ -27,10 +29,16 @@ const client = new Client({
   ],
 });
 const commands = require("./commandList").list;
+const queries = new Map();
 // When the client is ready, run this code (only once)
 client.once("ready", () => {
   console.log("Ready!");
 });
+
+function onLeave(guildId) {
+  queries.delete(guildId);
+}
+
 async function playurl(url, interaction) {
   if (playDl.yt_validate(url)) {
     if (!interaction.member.voice.channelId) {
@@ -41,26 +49,50 @@ async function playurl(url, interaction) {
     }
     let stream
     try {
-      stream = await playDl.stream(url, { discordPlayerCompatibility: true })
+      stream = await playDl.stream(url, { discordPlayerCompatibility: true });
     } catch (e) {
       interaction.editReply({
         content: "Failed to play video",
         ephemeral: false,
-      })
-      return
+      });
+      return;
     }
     if (!stream) {
       interaction.editReply({
         content: "Failed to play video",
         ephemeral: false,
-      })
-      return
+      });
+      return;
     }
-    const resource = createAudioResource(
-      stream.stream,
-      {inputType: stream.type}
-    );
-    const player = createAudioPlayer({behaviors: {noSubscriber: NoSubscriberBehavior.Play}});
+    const resource = createAudioResource(stream.stream, {
+      inputType: stream.type,
+    });
+    const player = createAudioPlayer({
+      behaviors: { noSubscriber: NoSubscriberBehavior.Play },
+    });
+    player.on(AudioPlayerStatus.Idle, async () => {
+      let currentQuery = queries.get(interaction.guildId);
+      if (!currentQuery) return;
+      currentQuery.query.shift();
+      if (currentQuery.query.length === 0) return;
+      let stream;
+      try {
+        stream = await playDl.stream(currentQuery.query[0], {
+          discordPlayerCompatibility: true,
+        });
+      } catch (e) {
+        interaction.editReply({
+          content: "Failed to play video",
+          ephemeral: false,
+        });
+        queries.set(interaction.guildId, currentQuery);
+        return;
+      }
+      const resource = createAudioResource(stream.stream, {
+        inputType: stream.type,
+      });
+      player.play(resource);
+    });
     const voiceConnection = joinVoiceChannel({
       channelId: interaction.member.voice.channelId,
       guildId: interaction.guild.id,
@@ -80,6 +112,13 @@ async function playurl(url, interaction) {
     });
     voiceConnection.subscribe(player)
     player.play(resource);
+      let currentQuery = {
+        //query declaration
+        query: [url],
+        player: player,
+        membersInVoice: 0
+      };
+      queries.set(interaction.guildId, currentQuery);
     const info = (await playDl.video_info(url)).video_details;
     interaction.editReply({
       content: `Now playing: [${info.title}](${url})`,
@@ -183,6 +222,10 @@ client.on("interactionCreate", async (interaction) => {
         guildId: interaction.guild.id,
         adapterCreator: interaction.guild.voiceAdapterCreator,
       });
+      connection.on(VoiceConnectionStatus.Disconnected, () => {
+        queries.delete(interaction.guildId)
+        connection.destroy()
+      })
       const networkStateChangeHandler = (oldNetworkState, newNetworkState) => {
         const newUdp = Reflect.get(newNetworkState, 'udp');
         clearInterval(newUdp?.keepAliveInterval);
@@ -213,6 +256,7 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply();
     const connection = getVoiceConnection(interaction.guild.id);
     if (connection) {
+      onLeave(interaction.guildId);
       connection.destroy();
       interaction.editReply({
         content: "Bot succesfully disconnected.",
@@ -289,8 +333,7 @@ client.on("interactionCreate", async (interaction) => {
     const searchWord = options.getString("query");
     ytsr(searchWord, { limit: 10 }).then((res) => {
       let searchRes = [];
-      res.items.map((item, index) => {
-        index++;
+      res.items.map((item) => {
         const embed = new EmbedBuilder().setTitle(item.title).setURL(item.url);
         try {
           embed.setImage(item.thumbnails[0].url);
@@ -307,16 +350,144 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply();
     const songName = options.getString("name");
     if (await playDl.validate(songName) === "yt_video") {
-      await playurl(songName, interaction);
+      if (!queries.get(interaction.guildId)) {
+        await playurl(songName, interaction);
+      } else {
+        const currentQuery = queries.get(interaction.guildId);
+        currentQuery.query.push(songName);
+        const info = await (await playDl.video_info(songName)).video_details;
+        queries.set(interaction.guildId, currentQuery);
+        interaction.editReply({
+          content: `[${info.title}](${songName}) added to play query on ${currentQuery.query.length}th place.`,
+        });
+      }
     } else {
       const res = await playDl.search(songName, { source: { youtube: "video" }, limit: 1})
-      if (res.length === 0) {
-          interaction.editReply({
-            content: "Couldn't find anything for your query",
-          });
-          return;
-        }
+      if (res.length == 0) {
+        interaction.editReply({
+          content: "Couldn't find anything for your query",
+        });
+        return;
+      }
+      if (!queries.get(interaction.guildId)) {
         await playurl(res[0].url, interaction);
+      } else {
+        const currentQuery = queries.get(interaction.guildId);
+        currentQuery.query.push(res[0].url);
+        queries.set(interaction.guildId, currentQuery);
+        const title = res[0].title
+        interaction.editReply({
+          content: `[${title}](${
+            res[0].url
+          }) added to play query on ${currentQuery.query.length - 1}th place.`,
+        });
+      }
+    }
+  } else if (commandName === "pause") {
+    await interaction.deferReply();
+    queries.get(interaction.guildId).player.pause();
+    interaction.editReply({
+      content: "Sound successfully paused",
+    });
+  } else if (commandName === "resume") {
+    await interaction.deferReply();
+    queries.get(interaction.guildId).player.unpause();
+    interaction.editReply({
+      content: "Sound successfully resumed",
+    });
+  } else if (commandName === "query") {
+    if (options.getSubcommand() === "list") {
+      await interaction.deferReply();
+      let urls;
+      try {
+        urls = queries.get(interaction.guildId).query;
+      } catch (ignore) {
+        interaction.editReply({
+          content: "None.",
+        });
+        return;
+      }
+      let listStr = "";
+      for (let i = 0; i < urls.length; i++) {
+        listStr = listStr.concat(
+          `${i + 1}. [${
+            (await playDl.video_info(urls[i])).video_details.title
+          }](<${urls[i]}>)\n`
+        );
+      }
+      if (listStr !== "") {
+        interaction.editReply({
+          content: listStr,
+        });
+      } else {
+        interaction.editReply({
+          content: "None.",
+        });
+      }
+    } else if (options.getSubcommand() === "clear") {
+      if (
+        interaction.member.permissions.has(
+          Discordjs.PermissionsBitField.Flags.Administrator
+        )
+      ) {
+        const guildQuery = queries.get(interaction.guildId);
+        if (guildQuery) {
+          guildQuery.player.stop();
+          queries.delete(interaction.guildId);
+        }
+      } else {
+        interaction.reply({
+          content: "You haven`t permission to clear play query!",
+          ephemeral: true,
+        });
+        return;
+      }
+      interaction.reply({
+        content: "Play query was succesfully cleared.",
+      });
+    } else if (options.getSubcommand() === "skip") {
+      await interaction.deferReply();
+      let guildInfo = queries.get(interaction.guildId);
+      if (guildInfo) {
+        if (guildInfo.membersInVoice === 0) guildInfo.membersInVoice = interaction.member.voice.channel.members.length
+        if (guildInfo.membersInVoice-- > 0) {
+          return interaction.reply( {
+            content: `For skipping song you need ${membersInVoice} more skip requests.`
+          })
+        }
+
+        guildInfo.query.shift();
+        let stream;
+        try {
+          stream = await playDl.stream(guildInfo.query[0], {
+            discordPlayerCompatibility: true,
+          });
+        } catch (e) {
+          guildInfo.player.stop();
+          interaction.editReply({
+            content: "Skipped.",
+            ephemeral: false,
+          });
+        }
+        if (stream) {
+          const resource = createAudioResource(stream.stream, {
+            inputType: stream.type,
+          });
+          guildInfo.player.play(resource);
+          const info = (await playDl.video_info(guildInfo.query[0]))
+            .video_details;
+          interaction.editReply({
+            content: `Now playing: [${info.title}](${guildInfo.query[0]})`,
+            ephemeral: false,
+          });
+        }
+      } else {
+        interaction.editReply({
+          content: "There is nothing to skip.",
+          ephemeral: true,
+        });
+      }
+      queries.set(interaction.guildId, guildInfo);
     }
   }
 });
@@ -341,6 +512,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
   if (channel.members.size > 1) return;
   // Выходим из канала и пишем сообщение
   voiceConnection.destroy();
+  onLeave(newState.guild.id);
 });
 
 client.on("guildCreate", (guild) => {
