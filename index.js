@@ -17,8 +17,6 @@ const {
 } = require("@discordjs/voice");
 const { REST } = require("@discordjs/rest");
 require("dotenv").config();
-require("ffmpeg");
-require("sodium");
 const ytsr = require("ytsr");
 const playDl = require("play-dl");
 // Create a new client instance
@@ -102,6 +100,7 @@ async function playurl(url, interaction) {
         //query declaration
         query: [url],
         player: player,
+        membersInVoice: 0
       };
       queries.set(interaction.guildId, currentQuery);
       const info = (await playDl.video_info(url)).video_details;
@@ -423,6 +422,13 @@ client.on("interactionCreate", async (interaction) => {
       await interaction.deferReply();
       let guildInfo = queries.get(interaction.guildId);
       if (guildInfo) {
+        if (guildInfo.membersInVoice === 0) guildInfo.membersInVoice = interaction.member.voice.channel.members.length
+        if (guildInfo.membersInVoice-- > 0) {
+          return interaction.reply( {
+            content: `For skipping song you need ${membersInVoice} more skip requests.`
+          })
+        }
+
         guildInfo.query.shift();
         let stream;
         try {
