@@ -354,16 +354,18 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply();
     const songName = options.getString("name");
     if (await playDl.validate(songName) === "yt_video") {
-      if (!queries.get(interaction.guildId)) {
+      const currentQuery = queries.get(interaction.guildId);
+      if (!currentQuery) {
         await playurl(songName, interaction);
-      } else {
-        const currentQuery = queries.get(interaction.guildId);
+      } else if (currentQuery.query.length > 0) {
         currentQuery.query.push(songName);
         const info = await (await playDl.video_info(songName)).video_details;
         queries.set(interaction.guildId, currentQuery);
         interaction.editReply({
           content: `[${info.title}](${songName}) added to play query on ${currentQuery.query.length}th place.`,
         });
+      } else {
+        await playurl(songName, interaction)
       }
     } else {
       const res = await playDl.search(songName, { source: { youtube: "video" }, limit: 1})
@@ -373,9 +375,10 @@ client.on("interactionCreate", async (interaction) => {
         });
         return;
       }
-      if (!queries.get(interaction.guildId)) {
+      const currentQuery = queries.get(interaction.guildId);
+      if (!currentQuery) {
         await playurl(res[0].url, interaction);
-      } else {
+      } else if (currentQuery.query.length > 0) {
         const currentQuery = queries.get(interaction.guildId);
         currentQuery.query.push(res[0].url);
         queries.set(interaction.guildId, currentQuery);
@@ -385,6 +388,8 @@ client.on("interactionCreate", async (interaction) => {
             res[0].url
           }) added to play query on ${currentQuery.query.length - 1}th place.`,
         });
+      } else {
+        await playurl(res[0].url, interaction);
       }
     }
   } else if (commandName === "pause") {
