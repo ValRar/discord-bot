@@ -120,7 +120,8 @@ async function playurl(url, interaction) {
         //query declaration
         query: [url],
         player: player,
-        membersInVoice: 0
+        membersInVoice: 0,
+        skipRequesters: []
       };
       queries.set(interaction.guildId, currentQuery);
     const info = (await playDl.video_info(url)).video_details;
@@ -458,13 +459,13 @@ client.on("interactionCreate", async (interaction) => {
       await interaction.deferReply();
       let guildInfo = queries.get(interaction.guildId);
       if (guildInfo) {
-        if (guildInfo.membersInVoice === 0) guildInfo.membersInVoice = interaction.member.voice.channel.members.size - 1
-        console.log(interaction.member.voice.channel.members.size)
-        guildInfo.membersInVoice--
-        if (guildInfo.membersInVoice > 0) {
-          console.log(guildInfo.membersInVoice)
+        if (guildInfo.membersInVoice === 0) guildInfo.membersInVoice = Math.ceil((interaction.member.voice.channel.members.size - 1) * 0.6) 
+        if (!guildInfo.skipRequesters.includes(interaction.user.id)) {
+          guildInfo.skipRequesters.push(interaction.user.id)
+        }
+        if (guildInfo.skipRequesters.length < guildInfo.membersInVoice) {
           return interaction.editReply( {
-            content: `For skipping song you need ${guildInfo.membersInVoice} more skip requests.`
+            content: `For skipping song you need ${guildInfo.membersInVoice - guildInfo.skipRequesters.length} more skip requests.`
           })
         }
 
